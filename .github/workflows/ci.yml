@@ -100,24 +100,24 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-      - name: Trivy FS scan
+      - name: Trivy FS scan (DEBUG MODE) # ИЗМЕНЕНО ИМЯ ДЛЯ ОТЛАДКИ
         uses: aquasecurity/trivy-action@0.20.0
         with:
           scan-type: 'fs'
           scan-ref: './demo/python' # Правильный путь
-          format: 'sarif'
-          output: 'table'
-          #output: 'trivy-fs.sarif'
+          format: 'table' # ИСПРАВЛЕНО
+          output: '' # ИСПРАВЛЕНО: Вывод в консоль
           ignore-unfixed: true
           severity: 'HIGH,CRITICAL'
           exit-code: '1'
-     # - uses: actions/upload-artifact@v4
-      #  with:
-       #   name: trivy-fs-sarif
-        #  path: trivy-fs.sarif
-      #- uses: github/codeql-action/upload-sarif@v3
-       # with:
-        #  sarif_file: trivy-fs.sarif
+      # Шаги загрузки SARIF закомментированы
+      # - uses: actions/upload-artifact@v4
+      #   with:
+      #     name: trivy-fs-sarif
+      #     path: trivy-fs.sarif
+      # - uses: github/codeql-action/upload-sarif@v3
+      #   with:
+      #     sarif_file: trivy-fs.sarif
 
   trivy-image:
     name: Trivy Image (container)
@@ -131,20 +131,20 @@ jobs:
           file: ./demo/python/Dockerfile # Правильный путь
           load: true
           tags: app:ci
-      - name: Trivy Image scan
+      - name: Trivy Image scan (DEBUG MODE) # ИЗМЕНЕНО ИМЯ ДЛЯ ОТЛАДКИ
         uses: aquasecurity/trivy-action@0.20.0
         with:
           image-ref: 'app:ci'
-          format: 'table'
-          #format: 'sarif'
-         # output: 'trivy-image.sarif'
+          format: 'table' # ИСПРАВЛЕНО
+          output: '' # ИСПРАВЛЕНО: Вывод в консоль
           ignore-unfixed: true
           severity: 'HIGH,CRITICAL'
           exit-code: '1'
-      #- uses: actions/upload-artifact@v4
-       # with:
-        #  name: trivy-image-sarif
-         # path: trivy-image.sarif
-      #- uses: github/codeql-action/upload-sarif@v3
-       # with:
-        #  sarif_file: trivy-image.sarif
+      # Шаги загрузки SARIF закомментированы
+      # - uses: actions/upload-artifact@v4
+      #   with:
+      #     name: trivy-image-sarif
+      #     path: trivy-image.sarif
+      # - uses: github/codeql-action/upload-sarif@v3
+      #   with:
+      #     sarif_file: trivy-image.sarif

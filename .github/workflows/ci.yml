@@ -61,9 +61,9 @@ jobs:
           curl -sSfL https://raw.githubusercontent.com/gitleaks/gitleaks/master/install.sh | bash -s v8.18.4
       - name: Run gitleaks
         run: |
-          chmod +x gitleaks # Мы добавляли этот шаг ранее
+          chmod +x gitleaks # ИСПРАВЛЕНО: Добавляем права на выполнение
           ./gitleaks detect --redact --report-format sarif --report-path gitleaks.sarif
-      - name: Upload artifact # Строка ~59, столбец 6 - вот здесь ошибка!
+      - name: Upload artifact
         uses: actions/upload-artifact@v4
         with:
           name: gitleaks-sarif
@@ -104,7 +104,7 @@ jobs:
         uses: aquasecurity/trivy-action@0.20.0
         with:
           scan-type: 'fs'
-          scan-ref: './demo/python'
+          scan-ref: './demo/python' # ИСПРАВЛЕНО: Указываем путь к папке с requirements.txt
           format: 'sarif'
           output: 'trivy-fs.sarif'
           ignore-unfixed: true
@@ -126,8 +126,8 @@ jobs:
       - uses: docker/setup-buildx-action@v3
       - uses: docker/build-push-action@v5
         with:
-          context: .
-          file: ./Dockerfile
+          context: ./demo/python
+          file: ./demo/python/Dockerfile
           load: true
           tags: app:ci
       - name: Trivy Image scan

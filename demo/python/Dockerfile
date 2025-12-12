@@ -8,9 +8,7 @@ WORKDIR /app
 ENV PYTHONPATH=/app
 
 RUN apt-get update \
-    && apt-get upgrade -y \
     && apt-get install -y --no-install-recommends build-essential curl ca-certificates \
-    && apt-get autoremove -y \
     && rm -rf /var/lib/apt/lists/*
 
 COPY requirements.txt ./

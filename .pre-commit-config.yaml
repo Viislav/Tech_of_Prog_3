@@ -1,0 +1,20 @@
+repos:
+  - repo: https://github.com/pre-commit/pre-commit-hooks
+    rev: v4.6.0 # Используйте последнюю стабильную версию
+    hooks:
+      - id: check-yaml
+      - id: end-of-file-fixer
+      - id: trailing-whitespace
+      - id: detect-private-key
+      
+  - repo: https://github.com/psf/black
+    rev: 24.3.0 # Линтер Black (для форматирования Python)
+    hooks:
+      - id: black
+        args: ["./demo/python"] # Укажите путь к вашей папке с кодом
+        
+  - repo: https://github.com/pycqa/isort
+    rev: 5.12.0 # Сортировка импортов
+    hooks:
+      - id: isort
+        args: ["./demo/python"] # Укажите путь к вашей папке с кодом

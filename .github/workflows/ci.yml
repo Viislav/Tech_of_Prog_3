@@ -105,16 +105,16 @@ jobs:
         with:
           scan-type: 'fs'
           scan-ref: './demo/python' # Правильный путь
-          format: 'sarif' # Восстановлен вывод SARIF
-          output: 'trivy-fs.sarif' # Восстановлен вывод в файл
+          format: 'sarif' # ИСПРАВЛЕНО
+          output: 'trivy-fs.sarif' # ИСПРАВЛЕНО
           ignore-unfixed: true
           severity: 'HIGH,CRITICAL'
           exit-code: '1'
-      - uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@v4 # РАСКОММЕНТИРОВАНО
         with:
           name: trivy-fs-sarif
           path: trivy-fs.sarif
-      - uses: github/codeql-action/upload-sarif@v3
+      - uses: github/codeql-action/upload-sarif@v3 # РАСКОММЕНТИРОВАНО
         with:
           sarif_file: trivy-fs.sarif
 
@@ -134,15 +134,15 @@ jobs:
         uses: aquasecurity/trivy-action@0.20.0
         with:
           image-ref: 'app:ci'
-          format: 'sarif' # Восстановлен вывод SARIF
-          output: 'trivy-image.sarif' # Восстановлен вывод в файл
+          format: 'sarif' # ИСПРАВЛЕНО
+          output: 'trivy-image.sarif' # ИСПРАВЛЕНО
           ignore-unfixed: true
           severity: 'HIGH,CRITICAL'
           exit-code: '1'
-      - uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@v4 # РАСКОММЕНТИРОВАНО
         with:
           name: trivy-image-sarif
           path: trivy-image.sarif
-      - uses: github/codeql-action/upload-sarif@v3
+      - uses: github/codeql-action/upload-sarif@v3 # РАСКОММЕНТИРОВАНО
         with:
           sarif_file: trivy-image.sarif

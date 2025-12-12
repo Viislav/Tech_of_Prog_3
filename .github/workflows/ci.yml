@@ -8,7 +8,7 @@ on:
 
 permissions:
   contents: read
-  security-events: write
+  security-events: write  # для загрузки SARIF
 
 concurrency:
   group: ci-${{ github.ref }}
@@ -28,8 +28,8 @@ jobs:
       - name: Build image
         uses: docker/build-push-action@v5
         with:
-          context: ./demo/python
-          file: ./demo/python/Dockerfile
+          context: ./demo/python  # Правильный путь
+          file: ./demo/python/Dockerfile # Правильный путь
           load: true
           tags: app:ci
 
@@ -56,9 +56,12 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-      - name: Run Gitleaks Scan (Manual Install)
+      - name: Run Gitleaks Scan (Manual Install) # ВОЗВРАЩЕН: Самонастраиваемый скрипт
         run: |
+          # 1. Скачиваем Gitleaks напрямую в текущую рабочую директорию
           curl -sSfL https://github.com/gitleaks/gitleaks/releases/download/v8.18.4/gitleaks_8.18.4_linux_x64.tar.gz | tar -xz gitleaks
+          # 2. Убеждаемся, что исполняемый файл находится в текущей директории
+          # 3. Запускаем его, используя относительный путь
           ./gitleaks detect --redact --report-format sarif --report-path gitleaks.sarif
       - name: Upload artifact
         uses: actions/upload-artifact@v4
@@ -97,24 +100,24 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-      - name: Trivy FS scan
+      - name: Trivy FS scan (DEBUG MODE) # ИЗМЕНЕНО ИМЯ ДЛЯ ОТЛАДКИ
         uses: aquasecurity/trivy-action@0.20.0
         with:
           scan-type: 'fs'
-          scan-ref: './demo/python'
-          format: 'sarif'
-          output: 'trivy-fs.sarif'
+          scan-ref: './demo/python' # Правильный путь
+          format: 'table' # ИСПРАВЛЕНО
+          output: '' # ИСПРАВЛЕНО: Вывод в консоль
           ignore-unfixed: true
           severity: 'HIGH,CRITICAL'
-          scanners: 'sbom,vuln' # <-- НОВОЕ: Сканируем только зависимости приложения
           exit-code: '1'
-      - uses: actions/upload-artifact@v4
-        with:
-          name: trivy-fs-sarif
-          path: trivy-fs.sarif
-      - uses: github/codeql-action/upload-sarif@v3
-        with:
-          sarif_file: trivy-fs.sarif
+      # Шаги загрузки SARIF закомментированы
+      # - uses: actions/upload-artifact@v4
+      #   with:
+      #     name: trivy-fs-sarif
+      #     path: trivy-fs.sarif
+      # - uses: github/codeql-action/upload-sarif@v3
+      #   with:
+      #     sarif_file: trivy-fs.sarif
 
   trivy-image:
     name: Trivy Image (container)
@@ -124,44 +127,24 @@ jobs:
       - uses: docker/setup-buildx-action@v3
       - uses: docker/build-push-action@v5
         with:
-          context: ./demo/python
-          file: ./demo/python/Dockerfile
+          context: ./demo/python # Правильный путь
+          file: ./demo/python/Dockerfile # Правильный путь
           load: true
           tags: app:ci
-      # Шаг 1: Создаем файл политики исключений Trivy
-      - name: Create Trivy Ignore Policy
-        run: |
-          echo "
-            policies:
-              - id: ignore-unfixed-debian-os
-                regoPolicy: |
-                  package system
-
-                  deny[msg] {
-                    # Игнорировать неустранимые уязвимости
-                    input.Vulnerability.Status == \"not_fixed\"
-                    # В пакетах ОС Debian
-                    input.Vulnerability.PkgType == \"os\"
-                    msg := \"Ignoring unfixed OS package vulnerability\"
-                  }
-          " > trivy-ignore-os.yaml
-
-      - name: Trivy Image scan (Apply Ignore Policy)
+      - name: Trivy Image scan (DEBUG MODE) # ИЗМЕНЕНО ИМЯ ДЛЯ ОТЛАДКИ
         uses: aquasecurity/trivy-action@0.20.0
         with:
           image-ref: 'app:ci'
-          format: 'sarif'
-          output: 'trivy-image.sarif'
+          format: 'table' # ИСПРАВЛЕНО
+          output: '' # ИСПРАВЛЕНО: Вывод в консоль
           ignore-unfixed: true
           severity: 'HIGH,CRITICAL'
-          # Используем созданный файл политики
-          ignore-policy: 'trivy-ignore-os.yaml'
-          exit-code: '1' # Сохраняем 1, чтобы падать при реальной угрозе
-
-      - uses: actions/upload-artifact@v4
-        with:
-          name: trivy-image-sarif
-          path: trivy-image.sarif
-      - uses: github/codeql-action/upload-sarif@v3
-        with:
-          sarif_file: trivy-image.sarif
+          exit-code: '1'
+      # Шаги загрузки SARIF закомментированы
+      # - uses: actions/upload-artifact@v4
+      #   with:
+      #     name: trivy-image-sarif
+      #     path: trivy-image.sarif
+      # - uses: github/codeql-action/upload-sarif@v3
+      #   with:
+      #     sarif_file: trivy-image.sarif

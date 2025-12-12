@@ -1,0 +1,205 @@
+name: CI / DevSecOps Pipeline
+
+on:
+  push:
+    branches: [ main ]
+  pull_request:
+    branches: [ main ]
+
+permissions:
+  contents: read           # Для actions/checkout
+  security-events: write   # Для загрузки SARIF в Code Scanning
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  # 1. Quality Gate: pre-commit checks
+  precommit:
+    name: 1. Quality Gate (pre-commit)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+
+      - name: Install pre-commit
+        run: |
+          python -m pip install --upgrade pip
+          pip install pre-commit
+          
+      # Предполагается, что .pre-commit-config.yaml находится в корне репозитория
+      - name: Run pre-commit checks
+        run: pre-commit run --a --show-diff-on-failure
+        
+  # 2. Базовый CI: Build & Test
+  build-test:
+    name: 2. Build and Test (Docker)
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Build image
+        uses: docker/build-push-action@v5
+        with:
+          # Указываем путь к проекту, где находится Dockerfile
+          context: ./demo/python 
+          file: ./demo/python/Dockerfile
+          load: true # Загрузить образ локально для последующего запуска тестов
+          tags: app:ci
+
+      - name: Run tests in container
+        run: |
+          docker run --rm -e PYTHONUNBUFFERED=1 app:ci pytest -q
+
+  # 3.1. DevSecOps: Secret Scanning (Gitleaks)
+  gitleaks:
+    name: 3.1. Secret Scanning (Gitleaks)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      
+      - name: Install gitleaks
+        # Используем скрипт установки, как в документе [cite: 127-129]
+        run: |
+          curl -sSfL https://raw.githubusercontent.com/gitleaks/gitleaks/master/install.sh | bash -s v8.18.4
+          
+      - name: Run gitleaks
+        # Команда генерации SARIF отчета [cite: 131-133]
+        run: ./gitleaks detect --redact --report-format sarif --report-path gitleaks.sarif
+          
+      - name: Upload gitleaks SARIF artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: gitleaks-sarif
+          path: gitleaks.sarif
+          
+      - name: Upload SARIF to Code Scanning
+        # Загрузка отчета в GitHub Code Scanning [cite: 139-141]
+        uses: github/codeql-action/upload-sarif@v3
+        with:
+          sarif_file: gitleaks.sarif
+
+  # 3.2. DevSecOps: SAST (Semgrep)
+  semgrep:
+    name: 3.2. SAST (Semgrep)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+          
+      - name: Install semgrep
+        run: pip install semgrep==1.*
+        
+      - name: Run semgrep (OWASP Top 10)
+        # Использование профиля OWASP Top 10 и вывод в SARIF [cite: 167-168]
+        run: semgrep ci --config p/owasp-top-ten-sarif --output semgrep.sarif
+        
+      - name: Upload semgrep SARIF artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: semgrep-sarif
+          path: semgrep.sarif
+          
+      - name: Upload SARIF to Code Scanning
+        uses: github/codeql-action/upload-sarif@v3
+        with:
+          sarif_file: semgrep.sarif
+
+  # 3.3. DevSecOps: SCA - Trivy FS Scan (Dependencies)
+  trivy-fs:
+    name: 3.3. Trivy FS (Dependencies)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      
+      - name: Trivy FS scan
+        uses: aquasecurity/trivy-action@0.20.0
+        with:
+          scan-type: 'fs'
+          input: './demo/python' # Сканируем папку с проектом
+          format: 'sarif'
+          output: 'trivy-fs.sarif'
+          ignore-unfixed: true
+          # Политика: провал при HIGH/CRITICAL уязвимостях [cite: 188, 204]
+          severity: 'HIGH, CRITICAL' 
+          exit-code: '1' # Код выхода 1 = провал CI
+          
+      - name: Upload trivy-fs SARIF artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: trivy-fs-sarif
+          path: trivy-fs.sarif
+          
+      - name: Upload SARIF to Code Scanning
+        uses: github/codeql-action/upload-sarif@v3
+        with:
+          sarif_file: trivy-fs.sarif
+
+  # 3.4. DevSecOps: SCA - Trivy Image Scan (Container)
+  trivy-image:
+    name: 3.4. Trivy Image (Container)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      
+      # Сборка образа для сканирования [cite: 215-222]
+      - uses: docker/setup-buildx-action@v3
+      - uses: docker/build-push-action@v5
+        with:
+          context: ./demo/python # Correct path for user's structure
+          file: ./demo/python/Dockerfile
+          load: true
+          tags: app:ci
+          
+      - name: Trivy Image scan
+        uses: aquasecurity/trivy-action@0.20.0
+        with:
+          image-ref: 'app:ci' # Сканируем локально собранный образ
+          format: 'sarif'
+          output: 'trivy-image.sarif'
+          ignore-unfixed: true
+          # Политика: провал при HIGH/CRITICAL уязвимостях [cite: 188, 229]
+          severity: 'HIGH, CRITICAL' 
+          exit-code: '1' # Код выхода 1 = провал CI
+          
+      - name: Upload trivy-image SARIF artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: trivy-image-sarif
+          path: trivy-image.sarif
+          
+      - name: Upload SARIF to Code Scanning
+        uses: github/codeql-action/upload-sarif@v3
+        with:
+          sarif_file: trivy-image.sarif
+
+  # 4. Отчетность: SBOM Generation (CycloneDX)
+  sbom:
+    name: 4. SBOM (CycloneDX)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      
+      # Установка Trivy CLI для использования команды sbom [cite: 284-286]
+      - name: Install Trivy
+        run: |
+          curl -sfL https://raw.githubusercontent.com/aquasecurity/trivy/main/contrib/install.sh | sh -s -- -b /usr/local/bin
+          
+      - name: Generate SBOM (FS)
+        # Генерация SBOM для файловой системы проекта [cite: 271, 288]
+        run: trivy sbom --format cyclonedx --output sbom.cdx.json ./demo/python
+        
+      - name: Upload SBOM artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: sbom-cyclonedx
+          path: sbom.cdx.json

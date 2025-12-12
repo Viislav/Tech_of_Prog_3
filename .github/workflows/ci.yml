@@ -56,12 +56,13 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-      - name: Run Gitleaks Scan
-        uses: zricethezav/gitleaks-action@v1
-        with:
-          github_token: ${{ secrets.GITHUB_TOKEN }} # ИСПРАВЛЕНО: Добавлен токен для надежного создания SARIF
-          report_format: sarif
-          report_path: gitleaks.sarif
+      - name: Run Gitleaks Scan (Manual Install) # ВОЗВРАЩЕН: Самонастраиваемый скрипт
+        run: |
+          # 1. Скачиваем Gitleaks напрямую в текущую рабочую директорию
+          curl -sSfL https://github.com/gitleaks/gitleaks/releases/download/v8.18.4/gitleaks_8.18.4_linux_x64.tar.gz | tar -xz gitleaks
+          # 2. Убеждаемся, что исполняемый файл находится в текущей директории
+          # 3. Запускаем его, используя относительный путь
+          ./gitleaks detect --redact --report-format sarif --report-path gitleaks.sarif
       - name: Upload artifact
         uses: actions/upload-artifact@v4
         with:

@@ -128,7 +128,25 @@ jobs:
           file: ./demo/python/Dockerfile
           load: true
           tags: app:ci
-      - name: Trivy Image scan
+      # Шаг 1: Создаем файл политики исключений Trivy
+      - name: Create Trivy Ignore Policy
+        run: |
+          echo "
+            policies:
+              - id: ignore-unfixed-debian-os
+                regoPolicy: |
+                  package system
+
+                  deny[msg] {
+                    # Игнорировать неустранимые уязвимости
+                    input.Vulnerability.Status == \"not_fixed\"
+                    # В пакетах ОС Debian
+                    input.Vulnerability.PkgType == \"os\"
+                    msg := \"Ignoring unfixed OS package vulnerability\"
+                  }
+          " > trivy-ignore-os.yaml
+
+      - name: Trivy Image scan (Apply Ignore Policy)
         uses: aquasecurity/trivy-action@0.20.0
         with:
           image-ref: 'app:ci'
@@ -136,15 +154,10 @@ jobs:
           output: 'trivy-image.sarif'
           ignore-unfixed: true
           severity: 'HIGH,CRITICAL'
-          # Игнорируем проблемы, которые не имеют фикса и являются частью базового образа
-          ignore-policies: |
-            package main
-            deny[msg] {
-              input.Metadata.OS.Family == "debian"
-              input.Metadata.ImageConfig.Architecture == "arm64"
-              msg := "Ignoring Debian vulnerabilities without fix"
-            }
-          exit-code: '1'
+          # Используем созданный файл политики
+          ignore-policy: 'trivy-ignore-os.yaml'
+          exit-code: '1' # Сохраняем 1, чтобы падать при реальной угрозе
+
       - uses: actions/upload-artifact@v4
         with:
           name: trivy-image-sarif

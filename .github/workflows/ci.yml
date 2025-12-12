@@ -84,23 +84,15 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-      - uses: actions/setup-python@v5
+      
+      # ФИКС: Используем Semgrep Action для надежной генерации SARIF
+      - uses: returntocorp/semgrep-action@v2
         with:
-          python-version: '3.12'
-
-      - name: Install semgrep
-        run: pip install semgrep==1.*
-
-      - name: Run semgrep (OWASP Top 10)
-        # ФИКС: Убрана опция --json, чтобы избежать ошибок синтаксиса SARIF
-        run: semgrep ci --config p/owasp-top-ten-sarif --output semgrep.sarif
-
-      - name: Upload semgrep SARIF artifact
-        uses: actions/upload-artifact@v4
-        with:
-          name: semgrep-sarif
-          path: semgrep.sarif
-
+          # Указываем путь к проекту и правила
+          directory: demo/python
+          config: p/owasp-top-ten-sarif
+          # Вывод будет автоматически сохранен в semgrep.sarif
+          
       - name: Upload SARIF to Code Scanning
         uses: github/codeql-action/upload-sarif@v3
         with:

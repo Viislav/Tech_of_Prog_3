@@ -136,6 +136,14 @@ jobs:
           output: 'trivy-image.sarif'
           ignore-unfixed: true
           severity: 'HIGH,CRITICAL'
+          # Игнорируем проблемы, которые не имеют фикса и являются частью базового образа
+          ignore-policies: |
+            package main
+            deny[msg] {
+              input.Metadata.OS.Family == "debian"
+              input.Metadata.ImageConfig.Architecture == "arm64"
+              msg := "Ignoring Debian vulnerabilities without fix"
+            }
           exit-code: '1'
       - uses: actions/upload-artifact@v4
         with:

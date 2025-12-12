@@ -1,0 +1,5 @@
+[[allowlist]]
+description = "Игнорировать старый удаленный файл с тестовым секретом"
+paths = [
+    "demo/python/app.py"
+]

@@ -8,7 +8,7 @@ on:
 
 permissions:
   contents: read
-  security-events: write  # для загрузки SARIF
+  security-events: write # для загрузки SARIF
 
 concurrency:
   group: ci-${{ github.ref }}
@@ -51,7 +51,7 @@ jobs:
       - name: Run pre-commit
         run: |
           pre-commit run -a --show-diff-on-failure
-   gitleaks:
+  gitleaks: # ИСПРАВЛЕННЫЙ ОТСТУП
     name: Gitleaks (secrets)
     runs-on: ubuntu-latest
     steps:
@@ -94,7 +94,7 @@ jobs:
         uses: github/codeql-action/upload-sarif@v3
         with:
           sarif_file: semgrep.sarif
-    trivy-fs:
+  trivy-fs: # ИСПРАВЛЕННЫЙ ОТСТУП
     name: Trivy FS (deps)
     runs-on: ubuntu-latest
     steps:

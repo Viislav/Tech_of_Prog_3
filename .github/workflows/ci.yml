@@ -68,11 +68,11 @@ jobs:
       - name: Install gitleaks
         # Используем скрипт установки, как в документе [cite: 127-129]
         run: |
-          curl -sSfL https://raw.githubusercontent.com/gitleaks/gitleaks/master/install.sh | bash -s v8.18.4
+          curl -sSfL https://raw.githubusercontent.com/gitleaks/gitleaks/master/install.sh | bash -s -- -b /usr/local/bin v8.18.4
 
       - name: Run gitleaks
         # Команда генерации SARIF отчета [cite: 131-133]
-        run: ./gitleaks detect --redact --report-format sarif --report-path gitleaks.sarif
+        run: gitleaks detect --redact --report-format sarif --report-path gitleaks.sarif
 
       - name: Upload gitleaks SARIF artifact
         uses: actions/upload-artifact@v4
@@ -101,7 +101,7 @@ jobs:
 
       - name: Run semgrep (OWASP Top 10)
         # Использование профиля OWASP Top 10 и вывод в SARIF [cite: 167-168]
-        run: semgrep ci --config p/owasp-top-ten-sarif --output semgrep.sarif
+        run: semgrep ci --config p/owasp-top-ten-sarif --output semgrep.sarif --json
 
       - name: Upload semgrep SARIF artifact
         uses: actions/upload-artifact@v4
@@ -196,7 +196,7 @@ jobs:
 
       - name: Generate SBOM (FS)
         # Генерация SBOM для файловой системы проекта [cite: 271, 288]
-        run: trivy sbom --format cyclonedx --output sbom.cdx.json ./demo/python
+        run: trivy sbom fs --format cyclonedx --output sbom.cdx.json ./demo/python
 
       - name: Upload SBOM artifact
         uses: actions/upload-artifact@v4

@@ -106,17 +106,18 @@ jobs:
           scan-type: 'fs'
           scan-ref: './demo/python' # Правильный путь
           format: 'sarif'
-          output: 'trivy-fs.sarif'
+          output: 'table'
+          #output: 'trivy-fs.sarif'
           ignore-unfixed: true
           severity: 'HIGH,CRITICAL'
           exit-code: '1'
-      - uses: actions/upload-artifact@v4
-        with:
-          name: trivy-fs-sarif
-          path: trivy-fs.sarif
-      - uses: github/codeql-action/upload-sarif@v3
-        with:
-          sarif_file: trivy-fs.sarif
+     # - uses: actions/upload-artifact@v4
+      #  with:
+       #   name: trivy-fs-sarif
+        #  path: trivy-fs.sarif
+      #- uses: github/codeql-action/upload-sarif@v3
+       # with:
+        #  sarif_file: trivy-fs.sarif
 
   trivy-image:
     name: Trivy Image (container)
@@ -134,15 +135,16 @@ jobs:
         uses: aquasecurity/trivy-action@0.20.0
         with:
           image-ref: 'app:ci'
-          format: 'sarif'
-          output: 'trivy-image.sarif'
+          format: 'table'
+          #format: 'sarif'
+         # output: 'trivy-image.sarif'
           ignore-unfixed: true
           severity: 'HIGH,CRITICAL'
           exit-code: '1'
-      - uses: actions/upload-artifact@v4
-        with:
-          name: trivy-image-sarif
-          path: trivy-image.sarif
-      - uses: github/codeql-action/upload-sarif@v3
-        with:
-          sarif_file: trivy-image.sarif
+      #- uses: actions/upload-artifact@v4
+       # with:
+        #  name: trivy-image-sarif
+         # path: trivy-image.sarif
+      #- uses: github/codeql-action/upload-sarif@v3
+       # with:
+        #  sarif_file: trivy-image.sarif

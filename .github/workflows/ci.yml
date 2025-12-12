@@ -56,7 +56,7 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-      - name: Run Gitleaks Scan (Manual Install) # ВОЗВРАЩЕН: Самонастраиваемый скрипт
+      - name: Run Gitleaks Scan (Manual Install)
         run: |
           # 1. Скачиваем Gitleaks напрямую в текущую рабочую директорию
           curl -sSfL https://github.com/gitleaks/gitleaks/releases/download/v8.18.4/gitleaks_8.18.4_linux_x64.tar.gz | tar -xz gitleaks
@@ -100,24 +100,23 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-      - name: Trivy FS scan (DEBUG MODE) # ИЗМЕНЕНО ИМЯ ДЛЯ ОТЛАДКИ
+      - name: Trivy FS scan
         uses: aquasecurity/trivy-action@0.20.0
         with:
           scan-type: 'fs'
           scan-ref: './demo/python' # Правильный путь
-          format: 'table' # ИСПРАВЛЕНО
-          output: '' # ИСПРАВЛЕНО: Вывод в консоль
+          format: 'sarif' # Восстановлен вывод SARIF
+          output: 'trivy-fs.sarif' # Восстановлен вывод в файл
           ignore-unfixed: true
           severity: 'HIGH,CRITICAL'
           exit-code: '1'
-      # Шаги загрузки SARIF закомментированы
-      # - uses: actions/upload-artifact@v4
-      #   with:
-      #     name: trivy-fs-sarif
-      #     path: trivy-fs.sarif
-      # - uses: github/codeql-action/upload-sarif@v3
-      #   with:
-      #     sarif_file: trivy-fs.sarif
+      - uses: actions/upload-artifact@v4
+        with:
+          name: trivy-fs-sarif
+          path: trivy-fs.sarif
+      - uses: github/codeql-action/upload-sarif@v3
+        with:
+          sarif_file: trivy-fs.sarif
 
   trivy-image:
     name: Trivy Image (container)
@@ -131,20 +130,19 @@ jobs:
           file: ./demo/python/Dockerfile # Правильный путь
           load: true
           tags: app:ci
-      - name: Trivy Image scan (DEBUG MODE) # ИЗМЕНЕНО ИМЯ ДЛЯ ОТЛАДКИ
+      - name: Trivy Image scan
         uses: aquasecurity/trivy-action@0.20.0
         with:
           image-ref: 'app:ci'
-          format: 'table' # ИСПРАВЛЕНО
-          output: '' # ИСПРАВЛЕНО: Вывод в консоль
+          format: 'sarif' # Восстановлен вывод SARIF
+          output: 'trivy-image.sarif' # Восстановлен вывод в файл
           ignore-unfixed: true
           severity: 'HIGH,CRITICAL'
           exit-code: '1'
-      # Шаги загрузки SARIF закомментированы
-      # - uses: actions/upload-artifact@v4
-      #   with:
-      #     name: trivy-image-sarif
-      #     path: trivy-image.sarif
-      # - uses: github/codeql-action/upload-sarif@v3
-      #   with:
-      #     sarif_file: trivy-image.sarif
+      - uses: actions/upload-artifact@v4
+        with:
+          name: trivy-image-sarif
+          path: trivy-image.sarif
+      - uses: github/codeql-action/upload-sarif@v3
+        with:
+          sarif_file: trivy-image.sarif

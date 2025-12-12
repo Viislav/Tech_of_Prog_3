@@ -28,8 +28,8 @@ jobs:
       - name: Build image
         uses: docker/build-push-action@v5
         with:
-          context: ./demo/python  # ИСПРАВЛЕНО
-          file: ./demo/python/Dockerfile # ИСПРАВЛЕНО
+          context: ./demo/python  # ИСПРАВЛЕННЫЙ ПУТЬ
+          file: ./demo/python/Dockerfile # ИСПРАВЛЕННЫЙ ПУТЬ
           load: true
           tags: app:ci
 
@@ -51,18 +51,16 @@ jobs:
       - name: Run pre-commit
         run: |
           pre-commit run -a --show-diff-on-failure
-  gitleaks: # ИСПРАВЛЕНО: Отступ
+  gitleaks:
     name: Gitleaks (secrets)
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-      - name: Install gitleaks
-        run: |
-          curl -sSfL https://raw.githubusercontent.com/gitleaks/gitleaks/master/install.sh | bash -s v8.18.4
-          echo "$HOME/gitleaks" >> $GITHUB_PATH # ИСПРАВЛЕНО: Добавление пути
-      - name: Run gitleaks
-        run: |
-          gitleaks detect --redact --report-format sarif --report-path gitleaks.sarif # ИСПРАВЛЕНО: Запуск через PATH
+      - name: Run Gitleaks Scan # ИСПРАВЛЕНО: Используем официальное действие для надежности
+        uses: zricethezav/gitleaks-action@v1
+        with:
+          report_format: sarif
+          report_path: gitleaks.sarif
       - name: Upload artifact
         uses: actions/upload-artifact@v4
         with:
@@ -95,7 +93,7 @@ jobs:
         uses: github/codeql-action/upload-sarif@v3
         with:
           sarif_file: semgrep.sarif
-  trivy-fs: # ИСПРАВЛЕНО: Отступ
+  trivy-fs:
     name: Trivy FS (deps)
     runs-on: ubuntu-latest
     steps:
@@ -104,12 +102,12 @@ jobs:
         uses: aquasecurity/trivy-action@0.20.0
         with:
           scan-type: 'fs'
-          scan-ref: './demo/python' # ИСПРАВЛЕНО
+          scan-ref: './demo/python' # ИСПРАВЛЕННЫЙ ПУТЬ
           format: 'sarif'
           output: 'trivy-fs.sarif'
           ignore-unfixed: true
           severity: 'HIGH,CRITICAL'
-          exit-code: '1'
+          exit-code: '1' # ВОЗВРАЩЕН: Строгий режим
       - uses: actions/upload-artifact@v4
         with:
           name: trivy-fs-sarif
@@ -126,8 +124,8 @@ jobs:
       - uses: docker/setup-buildx-action@v3
       - uses: docker/build-push-action@v5
         with:
-          context: ./demo/python # ИСПРАВЛЕНО
-          file: ./demo/python/Dockerfile # ИСПРАВЛЕНО
+          context: ./demo/python # ИСПРАВЛЕННЫЙ ПУТЬ
+          file: ./demo/python/Dockerfile # ИСПРАВЛЕННЫЙ ПУТЬ
           load: true
           tags: app:ci
       - name: Trivy Image scan
@@ -138,7 +136,7 @@ jobs:
           output: 'trivy-image.sarif'
           ignore-unfixed: true
           severity: 'HIGH,CRITICAL'
-          exit-code: '1'
+          exit-code: '1' # ВОЗВРАЩЕН: Строгий режим
       - uses: actions/upload-artifact@v4
         with:
           name: trivy-image-sarif

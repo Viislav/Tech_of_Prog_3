@@ -97,16 +97,25 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-      - name: Install Trivy
-        run: |
-          # Устанавливаем Trivy вручную
-          sudo apt-get update && sudo apt-get install -y wget
-          wget https://github.com/aquasecurity/trivy/releases/download/v0.52.2/trivy_0.52.2_Linux-64bit.deb
-          sudo dpkg -i trivy_0.52.2_Linux-64bit.deb
-      - name: Trivy FS scan (FORCED LOG OUTPUT)
-        run: |
-          # Запускаем Trivy с табличным выводом и игнорируем код выхода (|| true)
-          trivy fs --format table --severity HIGH,CRITICAL --ignore-unfixed ./demo/python || true
+      - name: Trivy FS scan
+        uses: aquasecurity/trivy-action@0.20.0
+        with:
+          scan-type: 'fs'
+          scan-ref: './demo/python'
+          format: 'sarif'
+          output: 'trivy-fs.sarif'
+          ignore-unfixed: true
+          severity: 'HIGH,CRITICAL'
+          # Добавляем политику для игнорирования проблем в базовом образе, если они не влияют на пакеты Python
+          ignore-policy: 'trivy_ignore.yaml' # Это новый файл!
+          exit-code: '1' # Возвращаем 1, чтобы увидеть, падает ли он вообще
+      - uses: actions/upload-artifact@v4
+        with:
+          name: trivy-fs-sarif
+          path: trivy-fs.sarif
+      - uses: github/codeql-action/upload-sarif@v3
+        with:
+          sarif_file: trivy-fs.sarif
 
   trivy-image:
     name: Trivy Image (container)
@@ -120,13 +129,21 @@ jobs:
           file: ./demo/python/Dockerfile
           load: true
           tags: app:ci
-      - name: Install Trivy
-        run: |
-          # Устанавливаем Trivy вручную
-          sudo apt-get update && sudo apt-get install -y wget
-          wget https://github.com/aquasecurity/trivy/releases/download/v0.52.2/trivy_0.52.2_Linux-64bit.deb
-          sudo dpkg -i trivy_0.52.2_Linux-64bit.deb
-      - name: Trivy Image scan (FORCED LOG OUTPUT)
-        run: |
-          # Запускаем Trivy с табличным выводом и игнорируем код выхода (|| true)
-          trivy image --format table --severity HIGH,CRITICAL --ignore-unfixed app:ci || true
+      - name: Trivy Image scan
+        uses: aquasecurity/trivy-action@0.20.0
+        with:
+          image-ref: 'app:ci'
+          format: 'sarif'
+          output: 'trivy-image.sarif'
+          ignore-unfixed: true
+          severity: 'HIGH,CRITICAL'
+          # Добавляем политику для игнорирования проблем в базовом образе
+          ignore-policy: 'trivy_ignore.yaml' # Это новый файл!
+          exit-code: '1'
+      - uses: actions/upload-artifact@v4
+        with:
+          name: trivy-image-sarif
+          path: trivy-image.sarif
+      - uses: github/codeql-action/upload-sarif@v3
+        with:
+          sarif_file: trivy-image.sarif

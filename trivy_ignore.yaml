@@ -1,0 +1,11 @@
+policies:
+  - id: ignore-base-os
+    # Игнорировать уязвимости, которые не имеют прямого отношения к Python-зависимостям,
+    # а являются частью базового образа Debian.
+    regoPolicy: |
+      package system
+
+      deny[msg] {
+        input.Type == "debian"
+        msg := "Ignoring base OS Debian vulnerabilities"
+      }

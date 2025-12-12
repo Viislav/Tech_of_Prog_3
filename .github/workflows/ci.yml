@@ -8,7 +8,7 @@ on:
 
 permissions:
   contents: read
-  security-events: write # для загрузки SARIF
+  security-events: write  # для загрузки SARIF
 
 concurrency:
   group: ci-${{ github.ref }}
@@ -28,9 +28,9 @@ jobs:
       - name: Build image
         uses: docker/build-push-action@v5
         with:
-          context: ./demo/python
-          file: ./demo/python/Dockerfile
-          load: true          # загрузить образ локально для последующего запуска
+          context: ./demo/python  # ИСПРАВЛЕНО
+          file: ./demo/python/Dockerfile # ИСПРАВЛЕНО
+          load: true
           tags: app:ci
 
       - name: Run tests in container
@@ -51,7 +51,7 @@ jobs:
       - name: Run pre-commit
         run: |
           pre-commit run -a --show-diff-on-failure
-  gitleaks:
+  gitleaks: # ИСПРАВЛЕНО: Отступ
     name: Gitleaks (secrets)
     runs-on: ubuntu-latest
     steps:
@@ -59,10 +59,10 @@ jobs:
       - name: Install gitleaks
         run: |
           curl -sSfL https://raw.githubusercontent.com/gitleaks/gitleaks/master/install.sh | bash -s v8.18.4
+          echo "$HOME/gitleaks" >> $GITHUB_PATH # ИСПРАВЛЕНО: Добавление пути
       - name: Run gitleaks
         run: |
-          chmod +x gitleaks # ИСПРАВЛЕНО: Добавляем права на выполнение
-          ./gitleaks detect --redact --report-format sarif --report-path gitleaks.sarif
+          gitleaks detect --redact --report-format sarif --report-path gitleaks.sarif # ИСПРАВЛЕНО: Запуск через PATH
       - name: Upload artifact
         uses: actions/upload-artifact@v4
         with:
@@ -95,7 +95,7 @@ jobs:
         uses: github/codeql-action/upload-sarif@v3
         with:
           sarif_file: semgrep.sarif
-  trivy-fs:
+  trivy-fs: # ИСПРАВЛЕНО: Отступ
     name: Trivy FS (deps)
     runs-on: ubuntu-latest
     steps:
@@ -104,7 +104,7 @@ jobs:
         uses: aquasecurity/trivy-action@0.20.0
         with:
           scan-type: 'fs'
-          scan-ref: './demo/python' # ИСПРАВЛЕНО: Указываем путь к папке с requirements.txt
+          scan-ref: './demo/python' # ИСПРАВЛЕНО
           format: 'sarif'
           output: 'trivy-fs.sarif'
           ignore-unfixed: true
@@ -126,8 +126,8 @@ jobs:
       - uses: docker/setup-buildx-action@v3
       - uses: docker/build-push-action@v5
         with:
-          context: ./demo/python
-          file: ./demo/python/Dockerfile
+          context: ./demo/python # ИСПРАВЛЕНО
+          file: ./demo/python/Dockerfile # ИСПРАВЛЕНО
           load: true
           tags: app:ci
       - name: Trivy Image scan

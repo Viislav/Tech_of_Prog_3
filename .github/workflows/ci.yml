@@ -28,8 +28,8 @@ jobs:
       - name: Build image
         uses: docker/build-push-action@v5
         with:
-          context: .
-          file: ./Dockerfile
+          context: ./demo/python
+          file: ./demo/python/Dockerfile
           load: true          # загрузить образ локально для последующего запуска
           tags: app:ci
 
@@ -51,7 +51,7 @@ jobs:
       - name: Run pre-commit
         run: |
           pre-commit run -a --show-diff-on-failure
-  gitleaks: # ИСПРАВЛЕННЫЙ ОТСТУП
+  gitleaks:
     name: Gitleaks (secrets)
     runs-on: ubuntu-latest
     steps:
@@ -61,8 +61,9 @@ jobs:
           curl -sSfL https://raw.githubusercontent.com/gitleaks/gitleaks/master/install.sh | bash -s v8.18.4
       - name: Run gitleaks
         run: |
+          chmod +x gitleaks # Мы добавляли этот шаг ранее
           ./gitleaks detect --redact --report-format sarif --report-path gitleaks.sarif
-      - name: Upload artifact
+      - name: Upload artifact # Строка ~59, столбец 6 - вот здесь ошибка!
         uses: actions/upload-artifact@v4
         with:
           name: gitleaks-sarif
@@ -94,7 +95,7 @@ jobs:
         uses: github/codeql-action/upload-sarif@v3
         with:
           sarif_file: semgrep.sarif
-  trivy-fs: # ИСПРАВЛЕННЫЙ ОТСТУП
+  trivy-fs:
     name: Trivy FS (deps)
     runs-on: ubuntu-latest
     steps:
@@ -103,6 +104,7 @@ jobs:
         uses: aquasecurity/trivy-action@0.20.0
         with:
           scan-type: 'fs'
+          scan-ref: './demo/python'
           format: 'sarif'
           output: 'trivy-fs.sarif'
           ignore-unfixed: true

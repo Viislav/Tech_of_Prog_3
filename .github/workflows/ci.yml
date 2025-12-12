@@ -30,6 +30,7 @@ jobs:
           python -m pip install --upgrade pip
           pip install pre-commit
 
+      # Предполагается, что .pre-commit-config.yaml находится в корне репозитория
       - name: Run pre-commit checks
         run: pre-commit run --a --show-diff-on-failure
 
@@ -47,9 +48,10 @@ jobs:
       - name: Build image
         uses: docker/build-push-action@v5
         with:
+          # Указываем путь к проекту, где находится Dockerfile
           context: ./demo/python
           file: ./demo/python/Dockerfile
-          load: true
+          load: true # Загрузить образ локально для последующего запуска тестов
           tags: app:ci
 
       - name: Run tests in container
@@ -63,24 +65,17 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
-      # ФИКС: Используем оригинальную установку, чтобы исполняемый файл был в текущей директории.
-      - name: Install gitleaks
-        run: |
-          curl -sSfL https://raw.githubusercontent.com/gitleaks/gitleaks/master/install.sh | bash -s v8.18.4
-
-      # ФИКС: Явно запускаем ./gitleaks (вместо gitleaks, который не находится в PATH)
-      - name: Run gitleaks
-        run: ./gitleaks detect --redact --report-format sarif --report-path gitleaks.sarif
-
-      - name: Upload gitleaks SARIF artifact
-        uses: actions/upload-artifact@v4
+      # ФИНАЛЬНЫЙ ФИКС: Используем официальное действие для Gitleaks, чтобы избежать проблем с PATH
+      - name: Run Gitleaks (via action)
+        uses: gitleaks/gitleaks-action@v2
         with:
-          name: gitleaks-sarif
-          path: gitleaks.sarif
+          config: .gitleaks.toml
+          # Gitleaks Action автоматически генерирует SARIF, если не указан формат
 
       - name: Upload SARIF to Code Scanning
         uses: github/codeql-action/upload-sarif@v3
         with:
+          # Имя файла по умолчанию для Gitleaks Action - gitleaks.sarif
           sarif_file: gitleaks.sarif
 
   # 3.2. DevSecOps: SAST (Semgrep)
@@ -96,8 +91,8 @@ jobs:
       - name: Install semgrep
         run: pip install semgrep==1.*
 
-      # ФИКС: Удалена опция "--json", которая нарушала формат SARIF.
       - name: Run semgrep (OWASP Top 10)
+        # ФИКС: Убрана опция --json, чтобы избежать ошибок синтаксиса SARIF
         run: semgrep ci --config p/owasp-top-ten-sarif --output semgrep.sarif
 
       - name: Upload semgrep SARIF artifact
@@ -122,12 +117,13 @@ jobs:
         uses: aquasecurity/trivy-action@0.20.0
         with:
           scan-type: 'fs'
-          input: './demo/python'
+          input: './demo/python' # Сканируем папку с проектом
           format: 'sarif'
           output: 'trivy-fs.sarif'
           ignore-unfixed: true
+          # Политика: провал при HIGH/CRITICAL уязвимостях
           severity: 'HIGH, CRITICAL'
-          exit-code: '1'
+          exit-code: '1' # Код выхода 1 = провал CI
 
       - name: Upload trivy-fs SARIF artifact
         uses: actions/upload-artifact@v4
@@ -147,10 +143,11 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
+      # Сборка образа для сканирования
       - uses: docker/setup-buildx-action@v3
       - uses: docker/build-push-action@v5
         with:
-          context: ./demo/python
+          context: ./demo/python # Correct path for user's structure
           file: ./demo/python/Dockerfile
           load: true
           tags: app:ci
@@ -158,12 +155,13 @@ jobs:
       - name: Trivy Image scan
         uses: aquasecurity/trivy-action@0.20.0
         with:
-          image-ref: 'app:ci'
+          image-ref: 'app:ci' # Сканируем локально собранный образ
           format: 'sarif'
           output: 'trivy-image.sarif'
           ignore-unfixed: true
+          # Политика: провал при HIGH/CRITICAL уязвимостях
           severity: 'HIGH, CRITICAL'
-          exit-code: '1'
+          exit-code: '1' # Код выхода 1 = провал CI
 
       - name: Upload trivy-image SARIF artifact
         uses: actions/upload-artifact@v4
@@ -183,12 +181,13 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
+      # Установка Trivy CLI для использования команды sbom
       - name: Install Trivy
         run: |
           curl -sfL https://raw.githubusercontent.com/aquasecurity/trivy/main/contrib/install.sh | sh -s -- -b /usr/local/bin
 
-      # ФИКС: Убрана опция 'fs' для более стабильной генерации SBOM по зависимостям.
       - name: Generate SBOM (FS)
+        # ФИКС: Убрано 'fs', чтобы избежать ошибки "unknown scanning"
         run: trivy sbom --format cyclonedx --output sbom.cdx.json ./demo/python
 
       - name: Upload SBOM artifact

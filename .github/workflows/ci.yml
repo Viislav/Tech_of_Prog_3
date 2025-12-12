@@ -52,13 +52,16 @@ jobs:
         run: |
           pre-commit run -a --show-diff-on-failure
   gitleaks:
+    gitleaks:
     name: Gitleaks (secrets)
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-      - name: Run Gitleaks Scan # ИСПРАВЛЕНО: Используем официальное действие для надежности
+      - name: Run Gitleaks Scan
         uses: zricethezav/gitleaks-action@v1
         with:
+          # ДОБАВЛЕНО: Предоставляем токен для корректной работы
+          github_token: ${{ secrets.GITHUB_TOKEN }}
           report_format: sarif
           report_path: gitleaks.sarif
       - name: Upload artifact
